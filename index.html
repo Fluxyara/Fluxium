@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Fluxium</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +35,29 @@ h1,h2,h3{font-family:var(--disp);margin:0;text-wrap:balance;line-height:1.08;let
 p{margin:0}
 .wrap{max-width:1120px;margin:0 auto}
 :focus-visible{outline:2px solid var(--blue2);outline-offset:3px}
+
+
+/* "blue window" tip shown when pressing Download */
+.tipbg{position:fixed;inset:0;z-index:60;background:rgba(2,3,6,.78);display:none;align-items:center;justify-content:center;padding:18px;overflow-y:auto}
+.tipbg.on{display:flex}
+.tipbox{--cut:16px;width:100%;max-width:640px;background:var(--steel);border:1px solid var(--line);padding:28px 26px 24px;margin:auto;
+  clip-path:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)))}
+.tipbox h2{font-size:28px;margin-bottom:8px}
+.tipbox p{color:var(--ash);font-size:16px}.tipbox p b{color:var(--fog)}
+.sst{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 4px}
+.ss{background:linear-gradient(180deg,#1c5fb8,#0f3f86);color:#fff;padding:14px 14px 12px;min-height:150px;display:flex;flex-direction:column;font:400 13px/1.4 'Segoe UI',var(--body);
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.tipbox .ss p b{color:#fff}
+.ss b{font:600 15.5px 'Segoe UI',var(--body);display:block;margin-bottom:6px;color:#fff}.ss p{margin:0;color:#fff;opacity:.92;font-size:13px}
+.ss u{display:inline-block;margin-top:10px;font-weight:600}
+.ss .bt{margin-top:auto;display:flex;gap:8px;justify-content:flex-end}.ss .bt i{font-style:normal;padding:5px 11px;background:rgba(255,255,255,.15);font-size:12.5px}
+.ss .hl{outline:2px solid #ffd24d;outline-offset:3px;background:rgba(255,255,255,.25)!important;animation:tiphl 1.3s ease-in-out infinite}
+@keyframes tiphl{50%{outline-color:rgba(255,210,77,0)}}
+@media (prefers-reduced-motion:reduce){.ss .hl{animation:none}}
+.sst small{display:block;color:var(--ash);font-size:14.5px;margin-top:8px}.sst small b{color:var(--fog)}
+.tipbox .small{font-size:14px;margin-top:12px}
+.tipacts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+@media (max-width:560px){.sst{grid-template-columns:1fr}.tipacts .btn{width:100%}}
 
 /* header */
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--hdr);backdrop-filter:blur(10px);
@@ -382,6 +404,18 @@ footer span:first-child{font-family:var(--disp);letter-spacing:.14em;text-transf
   </footer>
 </main>
 
+<div class="tipbg" id="tipbg" role="dialog" aria-modal="true" aria-labelledby="tipT" hidden>
+  <div class="tipbox">
+    <h2 id="tipT">One quick thing first</h2>
+    <p>After you download and open Fluxium, Windows may show a <b>blue window</b> that says <b>"Windows protected your PC"</b>. That is normal for new apps from small creators. Here is how to open it anyway:</p>
+    <div class="sst">
+      <div><div class="ss"><b>Windows protected your PC</b><p>Microsoft Defender SmartScreen prevented an unrecognized app from starting.</p><u class="hl">More info</u></div><small><b>1.</b> Click <b>More info</b></small></div>
+      <div><div class="ss"><b>Windows protected your PC</b><p>App: <b style="display:inline;font-size:13px">Fluxium.exe</b></p><div class="bt"><i class="hl">Run anyway</i><i>Don't run</i></div></div><small><b>2.</b> Click <b>Run anyway</b></small></div>
+    </div>
+    <p class="small">This is an example picture, yours may look a little different. You only have to do this once.</p>
+    <div class="tipacts"><button class="btn ghost sm" type="button" id="tipNo">Cancel</button><button class="btn" type="button" id="tipGo">Got it, download</button></div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -397,13 +431,26 @@ var DOWNLOAD_URL = "https://github.com/Fluxyara/Fluxium-App-Zip/releases/latest/
   var ready=/^https:\/\//.test(DOWNLOAD_URL);
   ['dlMain','dlFinal'].forEach(function(id){
     var a=$(id),t=$(id+'Text');
-    if(ready){a.href=DOWNLOAD_URL;a.target='_blank';a.rel='noopener'}
+    if(ready){a.href=DOWNLOAD_URL;a.target='_blank';a.rel='noopener';
+      a.addEventListener('click',function(e){e.preventDefault();openTip()})}
     else{
       a.classList.add('off');a.removeAttribute('href');a.setAttribute('aria-disabled','true');t.textContent='Link coming soon';
       a.addEventListener('click',function(e){e.preventDefault();toast('The download link is not ready yet.')});
     }
   });
   if(!ready)$('soon').hidden=false;
+
+  // "blue window" tip before the download starts
+  var tip=$('tipbg'),lastBtn=null;
+  function openTip(){lastBtn=document.activeElement;tip.hidden=false;tip.classList.add('on');setTimeout(function(){$('tipGo').focus()},30)}
+  function closeTip(){tip.classList.remove('on');tip.hidden=true;if(lastBtn&&lastBtn.focus)lastBtn.focus()}
+  $('tipNo').addEventListener('click',closeTip);
+  tip.addEventListener('click',function(e){if(e.target===tip)closeTip()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&tip.classList.contains('on'))closeTip()});
+  $('tipGo').addEventListener('click',function(){
+    var a=document.createElement('a');a.href=DOWNLOAD_URL;a.rel='noopener';a.download='';document.body.appendChild(a);a.click();a.remove();
+    closeTip();toast('Your download is starting');
+  });
 
   // share
   $('shareBtn').addEventListener('click',function(){
@@ -429,5 +476,3 @@ var DOWNLOAD_URL = "https://github.com/Fluxyara/Fluxium-App-Zip/releases/latest/
   });
 })();
 </script>
-
-</body></html>
